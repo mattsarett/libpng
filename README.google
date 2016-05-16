@@ -1,0 +1,3 @@
+Skia Modifications:
+
+Included Intel optimizations by running "patch -i contrib/intel/intel_sse.patch -p1".

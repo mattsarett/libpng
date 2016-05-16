@@ -1,5 +1,8 @@
 # Makefile.am, the source file for Makefile.in (and hence Makefile), is
 #
+# Copyright (c) 2016 Google, Inc.
+# Written by Mike Klein and Matt Sarett
+# Derived from the ARM supporting code in libpng/configure.ac, which was
 # Copyright (c) 2004-2016 Glenn Randers-Pehrson
 # Last changed in libpng 1.6.22 [(PENDING RELEASE)]
 #
@@ -91,6 +94,10 @@ libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@_la_SOURCES += arm/arm_init.c\
 	arm/filter_neon.S arm/filter_neon_intrinsics.c
 endif
 
+if PNG_INTEL_SSE
+libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@_la_SOURCES += contrib/intel/intel_init.c\
+    contrib/intel/filter_sse2_intrinsics.c
+endif
 nodist_libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@_la_SOURCES = pnglibconf.h
 
 libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@_la_LDFLAGS = -no-undefined -export-dynamic \

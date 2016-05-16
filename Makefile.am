@@ -1,13 +1,18 @@
-# Makefile.am:
-#   Source file for Makefile.in (and hence Makefile)
+# Makefile.am, the source file for Makefile.in (and hence Makefile), is
 #
+# Copyright (c) 2004-2016 Glenn Randers-Pehrson
+# Last changed in libpng 1.6.22 [(PENDING RELEASE)]
+#
+# This code is released under the libpng license.
+# For conditions of distribution and use, see the disclaimer
+# and license in png.h
 
 PNGLIB_BASENAME= libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@
 
 ACLOCAL_AMFLAGS = -I scripts
 
 # test programs - run on make check, make distcheck
-check_PROGRAMS= pngtest pngunknown pngstest pngvalid pngimage
+check_PROGRAMS= pngtest pngunknown pngstest pngvalid pngimage timepng
 
 # Utilities - installed
 bin_PROGRAMS= pngfix png-fix-itxt
@@ -36,6 +41,9 @@ pngunknown_LDADD = libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@.la
 
 pngimage_SOURCES = contrib/libtests/pngimage.c
 pngimage_LDADD = libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@.la
+
+timepng_SOURCES = contrib/libtests/timepng.c
+timepng_LDADD = libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@.la
 
 pngfix_SOURCES = contrib/tools/pngfix.c
 pngfix_LDADD = libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@.la

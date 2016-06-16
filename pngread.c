@@ -1,8 +1,8 @@
 
 /* pngread.c - read a PNG file
  *
- * Last changed in libpng 1.6.17 [March 26, 2015]
- * Copyright (c) 1998-2002,2004,2006-2015 Glenn Randers-Pehrson
+ * Last changed in libpng 1.6.24 [(PENDING RELEASE)]
+ * Copyright (c) 1998-2002,2004,2006-2016 Glenn Randers-Pehrson
  * (Version 0.96 Copyright (c) 1996, 1997 Andreas Dilger)
  * (Version 0.88 Copyright (c) 1995, 1996 Guy Eric Schalnat, Group 42, Inc.)
  *
@@ -127,7 +127,10 @@ png_read_info(png_structrp png_ptr, png_inforp info_ptr)
       }
 
       else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+      {
+         png_ptr->mode |= PNG_HAVE_CHUNK_AFTER_IDAT;
          png_ptr->mode |= PNG_AFTER_IDAT;
+      }
 
       /* This should be a binary subdivision search or a hash for
        * matching the chunk name rather than a linear search.
@@ -785,6 +788,9 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
       png_uint_32 length = png_read_chunk_header(png_ptr);
       png_uint_32 chunk_name = png_ptr->chunk_name;
 
+      if (chunk_name != png_IDAT)
+         png_ptr->mode |= PNG_HAVE_CHUNK_AFTER_IDAT;
+
       if (chunk_name == png_IEND)
          png_handle_IEND(png_ptr, info_ptr, length);
 
@@ -799,9 +805,9 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
       {
          if (chunk_name == png_IDAT)
          {
-            if ((length > 0) ||
-                (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
-               png_benign_error(png_ptr, "Too many IDATs found");
+            if ((length > 0 && !(png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED))
+                || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
+               png_benign_error(png_ptr, ".Too many IDATs found");
          }
          png_handle_unknown(png_ptr, info_ptr, length, keep);
          if (chunk_name == png_PLTE)
@@ -812,10 +818,14 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
       else if (chunk_name == png_IDAT)
       {
          /* Zero length IDATs are legal after the last IDAT has been
-          * read, but not after other chunks have been read.
+          * read, but not after other chunks have been read.  1.6 does not
+          * always read all the deflate data; specifically it cannot be relied
+          * upon to read the Adler32 at the end.  If it doesn't ignore IDAT
+          * chunks which are longer than zero as well:
           */
-         if ((length > 0) || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
-            png_benign_error(png_ptr, "Too many IDATs found");
+         if ((length > 0 && !(png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED))
+             || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
+            png_benign_error(png_ptr, "..Too many IDATs found");
 
          png_crc_finish(png_ptr, length);
       }
@@ -4077,6 +4087,12 @@ png_image_finish_read(png_imagep image, png_const_colorp background,
        */
       const unsigned int channels = PNG_IMAGE_PIXEL_CHANNELS(image->format);
 
+      /* The following checks just the 'row_stride' calculation to ensure it
+       * fits in a signed 32-bit value.  Because channels/components can be
+       * either 1 or 2 bytes in size the length of a row can still overflow 32
+       * bits; this is just to verify that the 'row_stride' argument can be
+       * represented.
+       */
       if (image->width <= 0x7FFFFFFFU/channels) /* no overflow */
       {
          png_uint_32 check;
@@ -4091,13 +4107,30 @@ png_image_finish_read(png_imagep image, png_const_colorp background,
          else
             check = row_stride;
 
+         /* This verifies 'check', the absolute value of the actual stride
+          * passed in and detects overflow in the application calculation (i.e.
+          * if the app did actually pass in a non-zero 'row_stride'.
+          */
          if (image->opaque != NULL && buffer != NULL && check >= png_row_stride)
          {
             /* Now check for overflow of the image buffer calculation; this
              * limits the whole image size to 32 bits for API compatibility with
              * the current, 32-bit, PNG_IMAGE_BUFFER_SIZE macro.
+             *
+             * The PNG_IMAGE_BUFFER_SIZE macro is:
+             *
+             *    (PNG_IMAGE_PIXEL_COMPONENT_SIZE(fmt)*height*(row_stride))
+             *
+             * And the component size is always 1 or 2, so make sure that the
+             * number of *bytes* that the application is saying are available
+             * does actually fit into a 32-bit number.
+             *
+             * NOTE: this will be changed in 1.7 because PNG_IMAGE_BUFFER_SIZE
+             * will be changed to use png_alloc_size_t; bigger images can be
+             * accomodated on 64-bit systems.
              */
-            if (image->height <= 0xFFFFFFFF/png_row_stride)
+            if (image->height <=
+                0xFFFFFFFFU/PNG_IMAGE_PIXEL_COMPONENT_SIZE(image->format)/check)
             {
                if ((image->format & PNG_FORMAT_FLAG_COLORMAP) == 0 ||
                   (image->colormap_entries > 0 && colormap != NULL))

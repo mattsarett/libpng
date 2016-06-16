@@ -28,7 +28,7 @@ AC_PREREQ([2.68])
 
 dnl Version number stuff here:
 
-AC_INIT([libpng],[1.6.22rc01],[png-mng-implement@lists.sourceforge.net])
+AC_INIT([libpng],[1.6.24beta02],[png-mng-implement@lists.sourceforge.net])
 AC_CONFIG_MACRO_DIR([scripts])
 
 # libpng does not follow GNU file name conventions (hence 'foreign')
@@ -49,10 +49,10 @@ dnl automake, so the following is not necessary (and is not defined anyway):
 dnl AM_PREREQ([1.11.2])
 dnl stop configure from automagically running automake
 
-PNGLIB_VERSION=1.6.22rc01
+PNGLIB_VERSION=1.6.24beta02
 PNGLIB_MAJOR=1
 PNGLIB_MINOR=6
-PNGLIB_RELEASE=22
+PNGLIB_RELEASE=24
 
 dnl End of version number stuff
 
@@ -149,6 +149,12 @@ AC_C_RESTRICT
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([memset], , AC_MSG_ERROR(memset not found in libc))
 AC_CHECK_FUNCS([pow], , AC_CHECK_LIB(m, pow, , AC_MSG_ERROR(cannot find pow)) )
+
+# Some later POSIX 1003.1 functions are required for test programs, failure here
+# is soft (the corresponding test program is not built).
+AC_CHECK_FUNC([clock_gettime],,[AC_MSG_WARN([not building timepng])])
+AM_CONDITIONAL([HAVE_CLOCK_GETTIME], [test "$ac_cv_func_clock_gettime" = "yes"])
+
 AC_ARG_WITH(zlib-prefix,
    AS_HELP_STRING([[[--with-zlib-prefix]]],
       [prefix that may have been used in installed zlib]),

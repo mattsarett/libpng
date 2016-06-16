@@ -15,7 +15,10 @@ PNGLIB_BASENAME= libpng@PNGLIB_MAJOR@@PNGLIB_MINOR@
 ACLOCAL_AMFLAGS = -I scripts
 
 # test programs - run on make check, make distcheck
-check_PROGRAMS= pngtest pngunknown pngstest pngvalid pngimage timepng
+check_PROGRAMS= pngtest pngunknown pngstest pngvalid pngimage
+if HAVE_CLOCK_GETTIME
+check_PROGRAMS += timepng
+endif
 
 # Utilities - installed
 bin_PROGRAMS= pngfix png-fix-itxt
